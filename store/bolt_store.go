@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/cockroachdb/errors"
 	"go.etcd.io/bbolt"
 )
 
@@ -23,19 +22,19 @@ const mode = 0666
 func NewBoltStore(path string) (ScanStore, error) {
 	db, err := bbolt.Open(path, mode, nil)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 	tx, err := db.Begin(true)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 	_, err = tx.CreateBucketIfNotExists(defaultBucket)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 	err = tx.Commit()
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 
 	return &boltStore{
@@ -61,7 +60,7 @@ func (s *boltStore) Get(ctx context.Context, key []byte) ([]byte, error) {
 		return nil
 	})
 
-	return v, errors.WithStack(err)
+	return v, err
 }
 
 func (s *boltStore) Scan(ctx context.Context, start []byte, end []byte, limit int) ([]*KVPair, error) {
@@ -92,7 +91,7 @@ func (s *boltStore) Scan(ctx context.Context, start []byte, end []byte, limit in
 		return nil
 	})
 
-	return res, errors.WithStack(err)
+	return res, err
 }
 
 func (s *boltStore) Put(ctx context.Context, key []byte, value []byte) error {
@@ -104,12 +103,12 @@ func (s *boltStore) Put(ctx context.Context, key []byte, value []byte) error {
 	err := s.bbolt.Update(func(tx *bbolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists(defaultBucket)
 		if err != nil {
-			return errors.WithStack(err)
+			return err
 		}
-		return errors.WithStack(b.Put(key, value))
+		return b.Put(key, value)
 	})
 
-	return errors.WithStack(err)
+	return err
 }
 
 func (s *boltStore) Delete(ctx context.Context, key []byte) error {
@@ -123,10 +122,10 @@ func (s *boltStore) Delete(ctx context.Context, key []byte) error {
 			return nil
 		}
 
-		return errors.WithStack(b.Delete(key))
+		return b.Delete(key)
 	})
 
-	return errors.WithStack(err)
+	return err
 }
 
 func (s *boltStore) Exists(ctx context.Context, key []byte) (bool, error) {
@@ -140,7 +139,7 @@ func (s *boltStore) Exists(ctx context.Context, key []byte) (bool, error) {
 		return nil
 	})
 
-	return v != nil, errors.WithStack(err)
+	return v != nil, err
 }
 
 type boltStoreTxn struct {
@@ -158,11 +157,11 @@ func (t *boltStoreTxn) Get(_ context.Context, key []byte) ([]byte, error) {
 }
 
 func (t *boltStoreTxn) Put(_ context.Context, key []byte, value []byte) error {
-	return errors.WithStack(t.bucket.Put(key, value))
+	return t.bucket.Put(key, value)
 }
 
 func (t *boltStoreTxn) Delete(_ context.Context, key []byte) error {
-	return errors.WithStack(t.bucket.Delete(key))
+	return t.bucket.Delete(key)
 }
 func (t *boltStoreTxn) Exists(_ context.Context, key []byte) (bool, error) {
 	return t.bucket.Get(key) != nil, nil
@@ -171,26 +170,26 @@ func (t *boltStoreTxn) Exists(_ context.Context, key []byte) (bool, error) {
 func (s *boltStore) Txn(ctx context.Context, fn func(ctx context.Context, txn Txn) error) error {
 	btxn, err := s.bbolt.Begin(true)
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 
 	txn := s.NewBoltStoreTxn(btxn)
 	err = fn(ctx, txn)
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 
-	return errors.WithStack(btxn.Commit())
+	return btxn.Commit()
 }
 
 func (s *boltStore) Close() error {
-	return errors.WithStack(s.bbolt.Close())
+	return s.bbolt.Close()
 }
 
 func (s *boltStore) Snapshot() (io.ReadWriter, error) {
 	return nil, ErrNotSupported
 }
 
-func (s *boltStore) Restore(buf io.Reader) error {
+func (s *boltStore) Restore(_ io.Reader) error {
 	return ErrNotSupported
 }

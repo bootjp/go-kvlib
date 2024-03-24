@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cockroachdb/errors"
 	"github.com/spaolacci/murmur3"
 )
 
@@ -73,7 +72,7 @@ func (s *memoryStore) Get(ctx context.Context, key []byte) ([]byte, error) {
 
 	h, err := s.hash(key)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 
 	s.log.InfoContext(ctx, "Get",
@@ -95,7 +94,7 @@ func (s *memoryStore) Put(ctx context.Context, key []byte, value []byte) error {
 
 	h, err := s.hash(key)
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 
 	s.m[h] = value
@@ -114,7 +113,7 @@ func (s *memoryStore) Delete(ctx context.Context, key []byte) error {
 
 	h, err := s.hash(key)
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 
 	delete(s.m, h)
@@ -125,13 +124,13 @@ func (s *memoryStore) Delete(ctx context.Context, key []byte) error {
 
 	return nil
 }
-func (s *memoryStore) Exists(ctx context.Context, key []byte) (bool, error) {
+func (s *memoryStore) Exists(_ context.Context, key []byte) (bool, error) {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
 
 	h, err := s.hash(key)
 	if err != nil {
-		return false, errors.WithStack(err)
+		return false, err
 	}
 
 	_, ok := s.m[h]
@@ -145,7 +144,7 @@ func (s *memoryStore) Txn(ctx context.Context, f func(ctx context.Context, txn T
 
 	err := f(ctx, txn)
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 
 	for _, op := range txn.ops {
@@ -155,7 +154,7 @@ func (s *memoryStore) Txn(ctx context.Context, f func(ctx context.Context, txn T
 		case OpTypeDelete:
 			delete(s.m, op.h)
 		default:
-			return errors.WithStack(ErrUnknownOp)
+			return ErrUnknownOp
 		}
 	}
 
@@ -169,7 +168,7 @@ func (s *memoryStore) TxnWithTTL(ctx context.Context, f func(ctx context.Context
 
 	err := f(ctx, txn)
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 
 	for _, op := range txn.ops {
@@ -181,7 +180,7 @@ func (s *memoryStore) TxnWithTTL(ctx context.Context, f func(ctx context.Context
 			delete(s.m, op.h)
 			delete(s.ttl, op.h)
 		default:
-			return errors.WithStack(ErrUnknownOp)
+			return ErrUnknownOp
 		}
 	}
 
@@ -191,7 +190,7 @@ func (s *memoryStore) TxnWithTTL(ctx context.Context, f func(ctx context.Context
 func (s *memoryStore) hash(key []byte) (uint64, error) {
 	h := murmur3.New64()
 	if _, err := h.Write(key); err != nil {
-		return 0, errors.WithStack(err)
+		return 0, err
 	}
 	return h.Sum64(), nil
 }
@@ -211,7 +210,7 @@ func (s *memoryStore) Snapshot() (io.ReadWriter, error) {
 	buf := &bytes.Buffer{}
 	err := gob.NewEncoder(buf).Encode(cl)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 
 	return buf, nil
@@ -223,7 +222,7 @@ func (s *memoryStore) Restore(buf io.Reader) error {
 	s.m = make(map[uint64][]byte)
 	err := gob.NewDecoder(buf).Decode(&s.m)
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 
 	return nil
@@ -235,7 +234,7 @@ func (s *memoryStore) Expire(ctx context.Context, key []byte, ttl int64) error {
 
 	h, err := s.hash(key)
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 
 	s.ttl[h] = time.Now().Unix() + ttl
@@ -254,7 +253,7 @@ func (s *memoryStore) PutWithTTL(ctx context.Context, key []byte, value []byte, 
 
 	h, err := s.hash(key)
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 
 	s.m[h] = value
@@ -326,7 +325,7 @@ func (s *memoryStore) NewTTLTxn() *memoryStoreTxn {
 func (t *memoryStoreTxn) Get(_ context.Context, key []byte) ([]byte, error) {
 	h, err := t.s.hash(key)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 
 	t.mu.RLock()
@@ -356,7 +355,7 @@ func (t *memoryStoreTxn) Put(_ context.Context, key []byte, value []byte) error 
 
 	h, err := t.s.hash(key)
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 
 	t.m[h] = value
@@ -374,7 +373,7 @@ func (t *memoryStoreTxn) Delete(_ context.Context, key []byte) error {
 
 	h, err := t.s.hash(key)
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 
 	t.m[h] = Tombstone
@@ -389,7 +388,7 @@ func (t *memoryStoreTxn) Delete(_ context.Context, key []byte) error {
 func (t *memoryStoreTxn) Exists(_ context.Context, key []byte) (bool, error) {
 	h, err := t.s.hash(key)
 	if err != nil {
-		return false, errors.WithStack(err)
+		return false, err
 	}
 
 	t.mu.RLock()
@@ -420,7 +419,7 @@ func (t *memoryStoreTxn) Expire(_ context.Context, key []byte, ttl int64) error 
 
 	h, err := t.s.hash(key)
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 
 	for i, o := range t.ops {
@@ -431,16 +430,16 @@ func (t *memoryStoreTxn) Expire(_ context.Context, key []byte, ttl int64) error 
 		return nil
 	}
 
-	return errors.WithStack(ErrKeyNotFound)
+	return ErrKeyNotFound
 }
 
-func (t *memoryStoreTxn) PutWithTTL(ctx context.Context, key []byte, value []byte, ttl int64) error {
+func (t *memoryStoreTxn) PutWithTTL(_ context.Context, key []byte, value []byte, ttl int64) error {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	h, err := t.s.hash(key)
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 
 	t.m[h] = value
