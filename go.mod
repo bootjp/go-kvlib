@@ -1,6 +1,6 @@
 module github.com/bootjp/go-kvlib
 
-go 1.22.1
+go 1.22
 
 require (
 	github.com/spaolacci/murmur3 v1.1.0
