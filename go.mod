@@ -1,6 +1,6 @@
 module github.com/bootjp/go-kvlib
 
-go 1.22.0
+go 1.22.1
 
 require (
 	github.com/cockroachdb/errors v1.11.1
