@@ -5,8 +5,6 @@ import (
 	"context"
 	"encoding/gob"
 	"io"
-	"log/slog"
-	"os"
 	"sync"
 	"time"
 
@@ -19,7 +17,6 @@ type memoryStore struct {
 	m map[uint64][]byte
 	// key -> ttl
 	ttl map[uint64]int64
-	log *slog.Logger
 
 	expire *time.Ticker
 }
@@ -32,9 +29,6 @@ func NewMemoryStore() Store {
 	m := &memoryStore{
 		mtx: sync.RWMutex{},
 		m:   map[uint64][]byte{},
-		log: slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-			Level: slog.LevelWarn,
-		})),
 
 		ttl: nil,
 	}
@@ -75,11 +69,6 @@ func (s *memoryStore) Get(ctx context.Context, key []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	s.log.InfoContext(ctx, "Get",
-		slog.String("key", string(key)),
-		slog.Uint64("hash", h),
-	)
-
 	v, ok := s.m[h]
 	if !ok {
 		return nil, ErrKeyNotFound
@@ -98,11 +87,6 @@ func (s *memoryStore) Put(ctx context.Context, key []byte, value []byte) error {
 	}
 
 	s.m[h] = value
-	s.log.InfoContext(ctx, "Put",
-		slog.String("key", string(key)),
-		slog.Uint64("hash", h),
-		slog.String("value", string(value)),
-	)
 
 	return nil
 }
@@ -117,10 +101,6 @@ func (s *memoryStore) Delete(ctx context.Context, key []byte) error {
 	}
 
 	delete(s.m, h)
-	s.log.InfoContext(ctx, "Delete",
-		slog.String("key", string(key)),
-		slog.Uint64("hash", h),
-	)
 
 	return nil
 }
@@ -238,11 +218,6 @@ func (s *memoryStore) Expire(ctx context.Context, key []byte, ttl int64) error {
 	}
 
 	s.ttl[h] = time.Now().Unix() + ttl
-	s.log.InfoContext(ctx, "Expire",
-		slog.String("key", string(key)),
-		slog.Uint64("hash", h),
-		slog.Int64("ttl", ttl),
-	)
 
 	return nil
 }
@@ -258,11 +233,6 @@ func (s *memoryStore) PutWithTTL(ctx context.Context, key []byte, value []byte, 
 
 	s.m[h] = value
 	s.ttl[h] = time.Now().Unix() + ttl
-	s.log.InfoContext(ctx, "Put",
-		slog.String("key", string(key)),
-		slog.Uint64("hash", h),
-		slog.String("value", string(value)),
-	)
 
 	return nil
 }
