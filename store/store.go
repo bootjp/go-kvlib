@@ -17,6 +17,8 @@ type KVPair struct {
 
 var Tombstone = []byte{0x00}
 
+type Txn func(ctx context.Context, txn Txn) error
+
 type Store interface {
 	Get(ctx context.Context, key []byte) ([]byte, error)
 	Put(ctx context.Context, key []byte, value []byte) error
@@ -24,7 +26,7 @@ type Store interface {
 	Exists(ctx context.Context, key []byte) (bool, error)
 	Snapshot() (io.ReadWriter, error)
 	Restore(buf io.Reader) error
-	Txn(ctx context.Context, f func(ctx context.Context, txn Txn) error) error
+	Txn(ctx context.Context, txn Txn) error
 	Close() error
 }
 
