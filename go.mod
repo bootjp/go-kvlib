@@ -4,7 +4,7 @@ go 1.22.2
 
 require (
 	github.com/spaolacci/murmur3 v1.1.0
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 	go.etcd.io/bbolt v1.3.11
 )
 
