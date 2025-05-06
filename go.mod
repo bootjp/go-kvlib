@@ -2,7 +2,7 @@ module github.com/bootjp/go-kvlib
 
 go 1.23
 
-toolchain go1.23.6
+toolchain go1.24.3
 
 require (
 	github.com/spaolacci/murmur3 v1.1.0
