@@ -6,7 +6,7 @@ toolchain go1.25.1
 
 require (
 	github.com/spaolacci/murmur3 v1.1.0
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	go.etcd.io/bbolt v1.4.3
 )
 
