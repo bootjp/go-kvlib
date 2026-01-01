@@ -1,2 +1,2 @@
 # go-kvlib
-「Go言語で作って理解する Raftベース強整合性 Redis Cluster」で使うライブラリ
+「[Go言語で作って理解する  Raftベース Redis互換KVS](https://techbookfest.org/product/nvCYxrw1szsgJThN9HQTyd)」で使うライブラリ
